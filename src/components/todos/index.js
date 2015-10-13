@@ -11,11 +11,21 @@ function amendStateWithChildren(DOM) {
     return {
       list: todosData.list.map(data => {
         const props$ = Rx.Observable.just(data);
+        const name = `.item${data.id}`;
+        const scopedDOM = DOM.select(name).observable; // scoped helper, TODO: allow infinite chaining
+        scopedDOM.select = selector => {
+          return {
+            events: event => scopedDOM
+              .filter(elements => !!elements[0])
+              .map(elements => elements[0].querySelector(selector))
+              .flatMap(els => Rx.Observable.fromEvent(els, event)),
+          }
+        }
         return {
           id: data.id,
           title: data.title,
           completed: data.completed,
-          todoItem: todoItem({DOM, props$}, `.item${data.id}`)
+          todoItem: todoItem({DOM: scopedDOM, props$}, name) // scoped selector
         };
       }),
       filter: todosData.filter,
