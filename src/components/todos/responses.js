@@ -66,8 +66,8 @@ function renderFooter(todosData) {
   ])
 }
 
-export default function view(todos$) {
-  return todos$.map(todos =>
+function view(amendedState$) {
+  return amendedState$.map(todos =>
     h('div', [
       renderHeader(),
       renderMainSection(todos),
@@ -75,3 +75,24 @@ export default function view(todos$) {
     ])
   );
 };
+
+function serialize(state$) {
+  return state$.map(todosData => JSON.stringify(
+    {
+      list: todosData.list.map(todoData =>
+        ({
+          title: todoData.title,
+          completed: todoData.completed,
+          id: todoData.id
+        })
+      )
+    }
+  ));
+};
+
+export default function createResponses(state$, amendedState$) {
+  return {
+    DOM: view(amendedState$),
+    localStorageSink: serialize(state$)
+  };
+}

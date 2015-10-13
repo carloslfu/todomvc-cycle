@@ -1,9 +1,8 @@
 import {Rx} from '@cycle/core';
-import intent from './intent';
-import model from './model';
-import view from './view';
-import deserialize from './local-storage-source';
-import serialize from './local-storage-sink';
+import {createActions, createInitialState} from './actions';
+import createReducers from './reducers';
+import createState from './state';
+import createResponses from './responses';
 import todoItem from '../todo-item';
 import mapValues from 'lodash.mapvalues';
 
@@ -42,18 +41,16 @@ function replicateAll(objectStructure, realStreams, proxyStreams) {
 }
 
 function todos({DOM, hashchange, initialHash, localStorageSource}) {
-  let sourceTodosData$ = deserialize(localStorageSource);
   let typeItemActions = {toggle$: null, edit$: null, delete$: null};
   let proxyItemActions = mapValues(typeItemActions, () => new Rx.Subject());
-  let actions = intent(DOM, hashchange, initialHash, proxyItemActions);
-  let state$ = model(actions, sourceTodosData$).shareReplay(1);
+  let initialState$ = createInitialState(localStorageSource);
+  let actions = createActions(DOM, hashchange, initialHash, proxyItemActions);
+  let reducers$ = createReducers(actions);
+  let state$ = createState(reducers$, initialState$).shareReplay(1);
   let amendedState$ = state$.map(amendStateWithChildren(DOM)).shareReplay(1);
   let itemActions = makeItemActions(typeItemActions, amendedState$);
   replicateAll(typeItemActions, itemActions, proxyItemActions);
-  return {
-    DOM: view(amendedState$),
-    localStorageSink: serialize(state$)
-  };
+  return createResponses(state$, amendedState$)
 }
 
 export default todos;

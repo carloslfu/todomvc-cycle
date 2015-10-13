@@ -27,12 +27,12 @@ function searchTodoIndex(todosList, todoid) {
   return null;
 }
 
-function makeModification$(actions) {
-  let clearInputMod$ = actions.clearInput$.map(() => (todosData) => {
+export default function createReducers(actions) {
+  let clearInputRd$ = actions.clearInput$.map(() => (todosData) => {
     return todosData;
   });
 
-  let insertTodoMod$ = actions.insertTodo$.map((todoTitle) => (todosData) => {
+  let insertTodoRd$ = actions.insertTodo$.map((todoTitle) => (todosData) => {
     let lastId = todosData.list.length > 0 ?
       todosData.list[todosData.list.length - 1].id :
       0;
@@ -44,20 +44,20 @@ function makeModification$(actions) {
     return todosData;
   });
 
-  let editTodoMod$ = actions.editTodo$.map(action => (todosData) => {
+  let editTodoRd$ = actions.editTodo$.map(action => (todosData) => {
     let todoIndex = searchTodoIndex(todosData.list, action.id);
     todosData.list[todoIndex].title = action.title;
     return todosData;
   });
 
-  let toggleTodoMod$ = actions.toggleTodo$.map(id => (todosData) => {
+  let toggleTodoRd$ = actions.toggleTodo$.map(id => (todosData) => {
     let todoIndex = searchTodoIndex(todosData.list, id);
     let previousCompleted = todosData.list[todoIndex].completed;
     todosData.list[todoIndex].completed = !previousCompleted;
     return todosData;
   });
 
-  let toggleAllMod$ = actions.toggleAll$.map(() => (todosData) => {
+  let toggleAllRd$ = actions.toggleAll$.map(() => (todosData) => {
     let allAreCompleted = todosData.list
       .reduce((x, y) => x && y.completed, true);
     todosData.list.forEach((todoData) => {
@@ -66,40 +66,30 @@ function makeModification$(actions) {
     return todosData;
   });
 
-  let deleteTodoMod$ = actions.deleteTodo$.map(id => (todosData) => {
+  let deleteTodoRd$ = actions.deleteTodo$.map(id => (todosData) => {
     let todoIndex = searchTodoIndex(todosData.list, id);
     todosData.list.splice(todoIndex, 1);
     return todosData;
   });
 
-  let deleteCompletedsMod$ = actions.deleteCompleteds$.map(() => (todosData) => {
+  let deleteCompletedsRd$ = actions.deleteCompleteds$.map(() => (todosData) => {
     todosData.list = todosData.list
       .filter(todoData => todoData.completed === false);
     return todosData
   });
 
-  let changeRouteMod$ = actions.changeRoute$.startWith('/').map(route => {
-    let filterFn = getFilterFn(route)
+  let changeRouteRd$ = actions.changeRoute$.startWith('/').map(route => {
+    let filter = route.replace('/', '').trim();
+    let filterFn = getFilterFn(route);
     return (todosData) => {
-      todosData.filter = route.replace('/', '').trim();
+      todosData.filter = filter;
       todosData.filterFn = filterFn;
       return todosData;
     }
   });
 
   return Rx.Observable.merge(
-    insertTodoMod$, deleteTodoMod$, toggleTodoMod$, toggleAllMod$,
-    clearInputMod$, deleteCompletedsMod$, editTodoMod$, changeRouteMod$
+    insertTodoRd$, deleteTodoRd$, toggleTodoRd$, toggleAllRd$,
+    clearInputRd$, deleteCompletedsRd$, editTodoRd$, changeRouteRd$
   );
 }
-
-function model(actions, sourceTodosData$) {
-  let modification$ = makeModification$(actions);
-
-  return sourceTodosData$
-    .merge(modification$)
-    .scan((todosData, modFn) => modFn(todosData))
-    .shareReplay(1);
-}
-
-export default model;

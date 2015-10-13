@@ -1,7 +1,7 @@
 import {Rx} from '@cycle/core';
 import {ENTER_KEY, ESC_KEY} from '../../utils';
 
-export default function intent(DOM, hashchange, initialHash, itemActions) {
+function createActions(DOM, hashchange, initialHash, itemActions) {
   const getTodoItemId = (name) => parseInt(name.replace('.item', ''))
 
   return {
@@ -33,4 +33,44 @@ export default function intent(DOM, hashchange, initialHash, itemActions) {
 
     deleteCompleteds$: DOM.select('.clear-completed').events('click')
   };
+}
+
+const safeJSONParse = str => JSON.parse(str) || {};
+
+const mergeWithDefaultTodosData = todosData => {
+  let defaultTodosData = {
+    list: [],
+    filter: '',
+    filterFn: () => true // allow anything
+  };
+  return merge(defaultTodosData, todosData);
+}
+
+function deserialize(localStorageValue$) {
+  return localStorageValue$
+    .map(safeJSONParse)
+    .map(mergeWithDefaultTodosData);
+}
+
+
+function createInitialState(localStorageSource) {
+  return deserialize(localStorageSource)
+}
+
+function merge() {
+  let result = {};
+  for (let i = 0; i < arguments.length; i++) {
+    let object = arguments[i];
+    for (let key in object) {
+      if (object.hasOwnProperty(key)) {
+        result[key] = object[key];
+      }
+    }
+  }
+  return result;
+}
+
+export default {
+  createInitialState,
+  createActions
 };
