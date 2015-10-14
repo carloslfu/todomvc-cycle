@@ -5,6 +5,9 @@ import createState from './state';
 import createResponses from './responses';
 import todoItem from '../todo-item';
 import mapValues from 'lodash.mapvalues';
+import counter from '../counter';
+
+// Dinamic composition
 
 function amendStateWithChildren(DOM) {
   return function (todosData) {
@@ -12,24 +15,18 @@ function amendStateWithChildren(DOM) {
       list: todosData.list.map(data => {
         const props$ = Rx.Observable.just(data);
         const name = `.item${data.id}`;
-        const scopedDOM = DOM.select(name).observable; // scoped helper, TODO: allow infinite chaining
-        scopedDOM.select = selector => {
-          return {
-            events: event => scopedDOM
-              .filter(elements => !!elements[0])
-              .map(elements => elements[0].querySelector(selector))
-              .flatMap(els => Rx.Observable.fromEvent(els, event)),
-          }
-        }
         return {
           id: data.id,
           title: data.title,
           completed: data.completed,
-          todoItem: todoItem({DOM: scopedDOM, props$}, name) // scoped selector
+          // dinamic composition
+          todoItem: todoItem({DOM: DOM.select(name), props$}, name) // scoped selector
         };
       }),
       filter: todosData.filter,
       filterFn: todosData.filterFn,
+      // static composition, TODO: scope this children
+      children: counter({DOM, props$: Rx.Observable.just({value: 5})}, 'countertodo'),
     };
   };
 }

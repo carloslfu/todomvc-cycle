@@ -68,9 +68,10 @@ function renderFooter(todosData) {
 
 function view(amendedState$) {
   return amendedState$.map(todos =>
-    h('div', [
+    h('div.todoapp', [
       renderHeader(),
       renderMainSection(todos),
+      todos.children.DOM,
       renderFooter(todos)
     ])
   );
